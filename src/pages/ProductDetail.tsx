@@ -18,30 +18,7 @@ import {
 } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { toast } from 'sonner';
-
-interface Product {
-  _id: string;
-  name: string;
-  description: string;
-  price: number;
-  originalPrice?: number;
-  images: string[];
-  sizes?: string[];
-  colors?: { name: string; value: string }[];
-  features?: string[];
-  stock: number;
-  rating: number;
-  numReviews: number;
-  badge?: string;
-  category: {
-    name: string;
-    slug: string;
-  };
-  brand: {
-    name: string;
-    slug: string;
-  };
-}
+import { productService, Product } from '@/services/productService';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -62,16 +39,14 @@ const ProductDetail = () => {
   }, [id]);
 
   const fetchProduct = async () => {
+    if (!id) return;
+    
     try {
-      const response = await fetch(`/api/products/${id}`);
-      if (response.ok) {
-        const data = await response.json();
-        setProduct(data);
-      } else {
-        toast.error('Product not found');
-      }
+      const data = await productService.getProduct(id);
+      setProduct(data);
     } catch (error) {
-      toast.error('Error fetching product');
+      console.error('Error fetching product:', error);
+      toast.error('Product not found');
     } finally {
       setIsLoading(false);
     }

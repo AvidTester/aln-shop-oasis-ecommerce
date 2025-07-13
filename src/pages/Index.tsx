@@ -6,28 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { ShoppingCart, Star, ArrowRight, TrendingUp, Users, Package } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { toast } from 'sonner';
-
-interface Product {
-  _id: string;
-  name: string;
-  price: number;
-  originalPrice?: number;
-  images: string[];
-  badge?: string;
-  rating: number;
-  numReviews: number;
-  category: {
-    name: string;
-    slug: string;
-  };
-}
-
-interface Category {
-  _id: string;
-  name: string;
-  slug: string;
-  image?: string;
-}
+import { productService, Product } from '@/services/productService';
+import { categoryService, Category } from '@/services/categoryService';
 
 const Index = () => {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
@@ -41,21 +21,15 @@ const Index = () => {
 
   const fetchHomeData = async () => {
     try {
-      const [productsResponse, categoriesResponse] = await Promise.all([
-        fetch('/api/products/featured/list'),
-        fetch('/api/categories')
+      const [productsData, categoriesData] = await Promise.all([
+        productService.getFeaturedProducts(),
+        categoryService.getCategories()
       ]);
 
-      if (productsResponse.ok) {
-        const productsData = await productsResponse.json();
-        setFeaturedProducts(productsData);
-      }
-
-      if (categoriesResponse.ok) {
-        const categoriesData = await categoriesResponse.json();
-        setCategories(categoriesData.slice(0, 6)); // Show only first 6 categories
-      }
+      setFeaturedProducts(productsData);
+      setCategories(categoriesData.slice(0, 6)); // Show only first 6 categories
     } catch (error) {
+      console.error('Error fetching home data:', error);
       toast.error('Failed to load data');
     } finally {
       setIsLoading(false);

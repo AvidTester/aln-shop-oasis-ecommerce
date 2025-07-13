@@ -5,40 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ShoppingCart, Star, Search, Filter, Grid, List } from 'lucide-react';
+import { ShoppingCart, Star, Search, Grid, List } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { toast } from 'sonner';
-
-interface Product {
-  _id: string;
-  name: string;
-  price: number;
-  originalPrice?: number;
-  images: string[];
-  badge?: string;
-  rating: number;
-  numReviews: number;
-  category: {
-    name: string;
-    slug: string;
-  };
-  brand: {
-    name: string;
-    slug: string;
-  };
-}
-
-interface Category {
-  _id: string;
-  name: string;
-  slug: string;
-}
-
-interface Brand {
-  _id: string;
-  name: string;
-  slug: string;
-}
+import { productService, Product } from '@/services/productService';
+import { categoryService, Category } from '@/services/categoryService';
+import { brandService, Brand } from '@/services/brandService';
 
 const Products = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -66,21 +38,15 @@ const Products = () => {
 
   const fetchFiltersData = async () => {
     try {
-      const [categoriesResponse, brandsResponse] = await Promise.all([
-        fetch('/api/categories'),
-        fetch('/api/brands')
+      const [categoriesData, brandsData] = await Promise.all([
+        categoryService.getCategories(),
+        brandService.getBrands()
       ]);
 
-      if (categoriesResponse.ok) {
-        const categoriesData = await categoriesResponse.json();
-        setCategories(categoriesData);
-      }
-
-      if (brandsResponse.ok) {
-        const brandsData = await brandsResponse.json();
-        setBrands(brandsData);
-      }
+      setCategories(categoriesData);
+      setBrands(brandsData);
     } catch (error) {
+      console.error('Error fetching filters:', error);
       toast.error('Failed to load filters');
     }
   };
@@ -88,24 +54,19 @@ const Products = () => {
   const fetchProducts = async () => {
     setIsLoading(true);
     try {
-      const params = new URLSearchParams({
-        page: currentPage.toString(),
-        limit: '12',
+      const data = await productService.getProducts({
+        page: currentPage,
+        limit: 12,
         ...(searchTerm && { search: searchTerm }),
         ...(selectedCategory && { category: selectedCategory }),
         ...(selectedBrand && { brand: selectedBrand }),
         ...(sortBy && { sort: sortBy }),
       });
 
-      const response = await fetch(`/api/products?${params}`);
-      if (response.ok) {
-        const data = await response.json();
-        setProducts(data.products || []);
-        setTotalPages(data.totalPages || 1);
-      } else {
-        toast.error('Failed to fetch products');
-      }
+      setProducts(data.products || []);
+      setTotalPages(data.totalPages || 1);
     } catch (error) {
+      console.error('Error fetching products:', error);
       toast.error('Error fetching products');
     } finally {
       setIsLoading(false);
