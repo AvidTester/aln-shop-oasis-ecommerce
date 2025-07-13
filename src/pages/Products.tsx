@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -118,8 +117,7 @@ const Products = () => {
       id: product._id,
       name: product.name,
       price: product.price,
-      image: product.images[0],
-      quantity: 1
+      image: product.images[0]
     });
     toast.success(`${product.name} added to cart!`);
   };
