@@ -7,66 +7,63 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Search, Edit, Trash2, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 
-interface Product {
+interface Category {
   _id: string;
   name: string;
-  price: number;
-  stock: number;
+  slug: string;
+  description?: string;
+  image?: string;
   isActive: boolean;
-  category: {
-    name: string;
-    slug: string;
-  };
-  images: string[];
+  createdAt: string;
 }
 
-const AdminProducts = () => {
+const AdminCategories = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetchProducts();
+    fetchCategories();
   }, []);
 
-  const fetchProducts = async () => {
+  const fetchCategories = async () => {
     try {
-      const response = await fetch('/api/products');
+      const response = await fetch('/api/categories');
       if (response.ok) {
         const data = await response.json();
-        setProducts(data.products || []);
+        setCategories(data);
       } else {
-        toast.error('Failed to fetch products');
+        toast.error('Failed to fetch categories');
       }
     } catch (error) {
-      toast.error('Error fetching products');
+      toast.error('Error fetching categories');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredCategories = categories.filter(category =>
+    category.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
     <div className="p-8">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Products Management</h1>
+        <h1 className="text-3xl font-bold">Categories Management</h1>
         <Button className="bg-aln-orange hover:bg-aln-orange-dark">
           <Plus className="h-4 w-4 mr-2" />
-          Add New Product
+          Add New Category
         </Button>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>All Products</CardTitle>
+          <CardTitle>All Categories</CardTitle>
           <div className="flex items-center space-x-4">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
-                placeholder="Search products..."
+                placeholder="Search categories..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -84,34 +81,29 @@ const AdminProducts = () => {
               <table className="w-full table-auto">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-3 px-4">Product</th>
-                    <th className="text-left py-3 px-4">Category</th>
-                    <th className="text-left py-3 px-4">Price</th>
-                    <th className="text-left py-3 px-4">Stock</th>
+                    <th className="text-left py-3 px-4">Name</th>
+                    <th className="text-left py-3 px-4">Slug</th>
+                    <th className="text-left py-3 px-4">Description</th>
                     <th className="text-left py-3 px-4">Status</th>
+                    <th className="text-left py-3 px-4">Created</th>
                     <th className="text-left py-3 px-4">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredProducts.map((product) => (
-                    <tr key={product._id} className="border-b hover:bg-gray-50">
+                  {filteredCategories.map((category) => (
+                    <tr key={category._id} className="border-b hover:bg-gray-50">
+                      <td className="py-3 px-4 font-medium">{category.name}</td>
+                      <td className="py-3 px-4 text-gray-600">{category.slug}</td>
+                      <td className="py-3 px-4 text-gray-600 max-w-xs truncate">
+                        {category.description || 'No description'}
+                      </td>
                       <td className="py-3 px-4">
-                        <div className="flex items-center space-x-3">
-                          <img
-                            src={product.images[0] || '/placeholder.svg'}
-                            alt={product.name}
-                            className="w-12 h-12 object-cover rounded"
-                          />
-                          <span className="font-medium">{product.name}</span>
-                        </div>
-                      </td>  
-                      <td className="py-3 px-4 capitalize">{product.category?.name || 'Uncategorized'}</td>
-                      <td className="py-3 px-4">${product.price.toFixed(2)}</td>
-                      <td className="py-3 px-4">{product.stock}</td>
-                      <td className="py-3 px-4">
-                        <Badge className={product.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
-                          {product.isActive ? 'Active' : 'Inactive'}
+                        <Badge className={category.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                          {category.isActive ? 'Active' : 'Inactive'}
                         </Badge>
+                      </td>
+                      <td className="py-3 px-4 text-gray-600">
+                        {new Date(category.createdAt).toLocaleDateString()}
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex space-x-2">
@@ -138,4 +130,4 @@ const AdminProducts = () => {
   );
 };
 
-export default AdminProducts;
+export default AdminCategories;

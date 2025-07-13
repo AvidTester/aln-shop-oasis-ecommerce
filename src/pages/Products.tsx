@@ -1,265 +1,239 @@
+
 import { useState, useEffect } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Star, Filter, Grid3X3, List } from 'lucide-react';
+import { ShoppingCart, Star, Search, Filter, Grid, List } from 'lucide-react';
+import { useCart } from '@/contexts/CartContext';
+import { toast } from 'sonner';
+
+interface Product {
+  _id: string;
+  name: string;
+  price: number;
+  originalPrice?: number;
+  images: string[];
+  badge?: string;
+  rating: number;
+  numReviews: number;
+  category: {
+    name: string;
+    slug: string;
+  };
+  brand: {
+    name: string;
+    slug: string;
+  };
+}
+
+interface Category {
+  _id: string;
+  name: string;
+  slug: string;
+}
+
+interface Brand {
+  _id: string;
+  name: string;
+  slug: string;
+}
 
 const Products = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [sortBy, setSortBy] = useState('featured');
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 200]);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
-
-  // Mock products data - replace with API call
-  const allProducts = [
-    {
-      id: '1',
-      name: 'Classic Black Hat',
-      price: 29.99,
-      originalPrice: 39.99,
-      image: 'https://images.unsplash.com/photo-1521369909029-2afed882baee?w=400',
-      category: 'hats',
-      brand: 'ALN Brand',
-      rating: 4.8,
-      reviews: 124,
-      badge: 'Sale',
-      description: 'Premium quality cotton hat perfect for any occasion.',
-    },
-    {
-      id: '2',
-      name: 'Vintage Sunglasses',
-      price: 49.99,
-      image: 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=400',
-      category: 'sunglasses',
-      brand: 'Style Co',
-      rating: 4.9,
-      reviews: 89,
-      badge: 'New',
-      description: 'Retro-inspired sunglasses with UV protection.',
-    },
-    {
-      id: '3',
-      name: 'Premium Cotton T-Shirt',
-      price: 24.99,
-      image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400',
-      category: 'tshirts',
-      brand: 'Comfort Wear',
-      rating: 4.7,
-      reviews: 203,
-      badge: 'Best Seller',
-      description: '100% organic cotton t-shirt in various colors.',
-    },
-    {
-      id: '4',
-      name: 'Designer Baseball Cap',
-      price: 34.99,
-      image: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=400',
-      category: 'hats',
-      brand: 'ALN Brand',
-      rating: 4.6,
-      reviews: 67,
-      badge: 'Limited',
-      description: 'Stylish baseball cap with embroidered logo.',
-    },
-    {
-      id: '5',
-      name: 'Aviator Sunglasses',
-      price: 59.99,
-      image: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=400',
-      category: 'sunglasses',
-      brand: 'Classic Vision',
-      rating: 4.8,
-      reviews: 156,
-      description: 'Classic aviator style with polarized lenses.',
-    },
-    {
-      id: '6',
-      name: 'Graphic Print Tee',
-      price: 27.99,
-      image: 'https://images.unsplash.com/photo-1583743814966-8936f37f3823?w=400',
-      category: 'tshirts',
-      brand: 'Urban Style',
-      rating: 4.5,
-      reviews: 98,
-      description: 'Trendy graphic t-shirt with unique designs.',
-    },
-  ];
-
-  const categories = ['hats', 'tshirts', 'sunglasses', 'accessories'];
-  const brands = ['ALN Brand', 'Style Co', 'Comfort Wear', 'Classic Vision', 'Urban Style'];
-
-  const [filteredProducts, setFilteredProducts] = useState(allProducts);
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
+  const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
+  const [selectedBrand, setSelectedBrand] = useState(searchParams.get('brand') || '');
+  const [sortBy, setSortBy] = useState(searchParams.get('sort') || '');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  
+  const { addToCart } = useCart();
 
   useEffect(() => {
-    let filtered = [...allProducts];
+    fetchFiltersData();
+  }, []);
 
-    // Filter by search query
-    const searchQuery = searchParams.get('search');
-    if (searchQuery) {
-      filtered = filtered.filter(product =>
-        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.description.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+  useEffect(() => {
+    fetchProducts();
+  }, [searchTerm, selectedCategory, selectedBrand, sortBy, currentPage]);
+
+  const fetchFiltersData = async () => {
+    try {
+      const [categoriesResponse, brandsResponse] = await Promise.all([
+        fetch('/api/categories'),
+        fetch('/api/brands')
+      ]);
+
+      if (categoriesResponse.ok) {
+        const categoriesData = await categoriesResponse.json();
+        setCategories(categoriesData);
+      }
+
+      if (brandsResponse.ok) {
+        const brandsData = await brandsResponse.json();
+        setBrands(brandsData);
+      }
+    } catch (error) {
+      toast.error('Failed to load filters');
     }
-
-    // Filter by category
-    const categoryFilter = searchParams.get('category');
-    if (categoryFilter && categoryFilter !== 'all') {
-      filtered = filtered.filter(product => product.category === categoryFilter);
-    }
-
-    // Filter by selected categories
-    if (selectedCategories.length > 0) {
-      filtered = filtered.filter(product => selectedCategories.includes(product.category));
-    }
-
-    // Filter by selected brands
-    if (selectedBrands.length > 0) {
-      filtered = filtered.filter(product => selectedBrands.includes(product.brand));
-    }
-
-    // Filter by price range
-    filtered = filtered.filter(product => 
-      product.price >= priceRange[0] && product.price <= priceRange[1]
-    );
-
-    // Sort products
-    switch (sortBy) {
-      case 'price-low':
-        filtered.sort((a, b) => a.price - b.price);
-        break;
-      case 'price-high':
-        filtered.sort((a, b) => b.price - a.price);
-        break;
-      case 'rating':
-        filtered.sort((a, b) => b.rating - a.rating);
-        break;
-      case 'newest':
-        // Mock newest sort
-        break;
-      default:
-        // Featured - keep original order
-        break;
-    }
-
-    setFilteredProducts(filtered);
-  }, [searchParams, selectedCategories, selectedBrands, priceRange, sortBy]);
-
-  const handleCategoryChange = (category: string) => {
-    setSelectedCategories(prev =>
-      prev.includes(category)
-        ? prev.filter(c => c !== category)
-        : [...prev, category]
-    );
   };
 
-  const handleBrandChange = (brand: string) => {
-    setSelectedBrands(prev =>
-      prev.includes(brand)
-        ? prev.filter(b => b !== brand)
-        : [...prev, brand]
-    );
+  const fetchProducts = async () => {
+    setIsLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: '12',
+        ...(searchTerm && { search: searchTerm }),
+        ...(selectedCategory && { category: selectedCategory }),
+        ...(selectedBrand && { brand: selectedBrand }),
+        ...(sortBy && { sort: sortBy }),
+      });
+
+      const response = await fetch(`/api/products?${params}`);
+      if (response.ok) {
+        const data = await response.json();
+        setProducts(data.products || []);
+        setTotalPages(data.totalPages || 1);
+      } else {
+        toast.error('Failed to fetch products');
+      }
+    } catch (error) {
+      toast.error('Error fetching products');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const ProductCard = ({ product }: { product: typeof allProducts[0] }) => (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
-      <div className="relative aspect-square overflow-hidden">
-        <img
-          src={product.image}
-          alt={product.name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-        />
-        {product.badge && (
-          <Badge className="absolute top-2 left-2 bg-aln-orange text-white">
-            {product.badge}
-          </Badge>
-        )}
-      </div>
-      <CardContent className="p-4">
-        <h3 className="font-semibold mb-2 group-hover:text-aln-orange transition-colors">
-          {product.name}
-        </h3>
-        <p className="text-sm text-gray-600 mb-2">{product.description}</p>
-        <div className="flex items-center mb-2">
-          <div className="flex items-center">
-            {[...Array(5)].map((_, i) => (
-              <Star
-                key={i}
-                className={`h-4 w-4 ${
-                  i < Math.floor(product.rating)
-                    ? 'text-yellow-400 fill-current'
-                    : 'text-gray-300'
-                }`}
-              />
-            ))}
-          </div>
-          <span className="text-sm text-gray-600 ml-2">
-            ({product.rating}) • {product.reviews} reviews
-          </span>
-        </div>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <span className="text-lg font-bold text-aln-orange">${product.price}</span>
-            {product.originalPrice && (
-              <span className="text-sm text-gray-500 line-through">
-                ${product.originalPrice}
-              </span>
-            )}
-          </div>
-          <Link to={`/products/${product.id}`}>
-            <Button size="sm" className="bg-aln-orange hover:bg-aln-orange-dark">
-              View Details
-            </Button>
-          </Link>
-        </div>
-      </CardContent>
-    </Card>
-  );
+  const handleAddToCart = (product: Product) => {
+    addToCart({
+      id: product._id,
+      name: product.name,
+      price: product.price,
+      image: product.images[0],
+      quantity: 1
+    });
+    toast.success(`${product.name} added to cart!`);
+  };
+
+  const renderStars = (rating: number) => {
+    return Array.from({ length: 5 }, (_, i) => (
+      <Star
+        key={i}
+        className={`h-4 w-4 ${
+          i < Math.floor(rating) ? 'text-yellow-400 fill-current' : 'text-gray-300'
+        }`}
+      />
+    ));
+  };
+
+  const updateSearchParams = (key: string, value: string) => {
+    const newParams = new URLSearchParams(searchParams);
+    if (value) {
+      newParams.set(key, value);
+    } else {
+      newParams.delete(key);
+    }
+    setSearchParams(newParams);
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-4">All Products</h1>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <p className="text-gray-600">
-              Showing {filteredProducts.length} products
-            </p>
-            <div className="flex items-center space-x-4">
-              {/* Sort */}
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Sort by" />
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">All Products</h1>
+          
+          {/* Search and Filters */}
+          <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
+            <div className="flex flex-col sm:flex-row gap-4 flex-1">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search products..."
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    updateSearchParams('search', e.target.value);
+                  }}
+                  className="pl-10"
+                />
+              </div>
+              
+              <Select value={selectedCategory} onValueChange={(value) => {
+                setSelectedCategory(value);
+                updateSearchParams('category', value);
+              }}>
+                <SelectTrigger className="w-full sm:w-48">
+                  <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="featured">Featured</SelectItem>
-                  <SelectItem value="newest">Newest</SelectItem>
-                  <SelectItem value="price-low">Price: Low to High</SelectItem>
-                  <SelectItem value="price-high">Price: High to Low</SelectItem>
-                  <SelectItem value="rating">Highest Rated</SelectItem>
+                  <SelectItem value="">All Categories</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category._id} value={category.slug}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 
-              {/* View Mode */}
-              <div className="flex items-center space-x-2">
+              <Select value={selectedBrand} onValueChange={(value) => {
+                setSelectedBrand(value);
+                updateSearchParams('brand', value);
+              }}>
+                <SelectTrigger className="w-full sm:w-48">
+                  <SelectValue placeholder="Brand" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Brands</SelectItem>
+                  {brands.map((brand) => (
+                    <SelectItem key={brand._id} value={brand.slug}>
+                      {brand.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <Select value={sortBy} onValueChange={(value) => {
+                setSortBy(value);
+                updateSearchParams('sort', value);
+              }}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Default</SelectItem>
+                  <SelectItem value="price-low">Price: Low to High</SelectItem>
+                  <SelectItem value="price-high">Price: High to Low</SelectItem>
+                  <SelectItem value="rating">Highest Rated</SelectItem>
+                  <SelectItem value="newest">Newest First</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <div className="flex border rounded-md">
                 <Button
-                  variant={viewMode === 'grid' ? 'default' : 'outline'}
+                  variant={viewMode === 'grid' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setViewMode('grid')}
+                  className="rounded-r-none"
                 >
-                  <Grid3X3 className="h-4 w-4" />
+                  <Grid className="h-4 w-4" />
                 </Button>
                 <Button
-                  variant={viewMode === 'list' ? 'default' : 'outline'}
+                  variant={viewMode === 'list' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setViewMode('list')}
+                  className="rounded-l-none"
                 >
                   <List className="h-4 w-4" />
                 </Button>
@@ -268,108 +242,151 @@ const Products = () => {
           </div>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Filters Sidebar */}
-          <div className="lg:w-64 space-y-6">
-            <Card className="p-6">
-              <h3 className="font-semibold mb-4 flex items-center">
-                <Filter className="h-4 w-4 mr-2" />
-                Filters
-              </h3>
-
-              {/* Categories */}
-              <div className="mb-6">
-                <h4 className="font-medium mb-3">Categories</h4>
-                <div className="space-y-2">
-                  {categories.map(category => (
-                    <div key={category} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={category}
-                        checked={selectedCategories.includes(category)}
-                        onCheckedChange={() => handleCategoryChange(category)}
-                      />
-                      <label
-                        htmlFor={category}
-                        className="text-sm capitalize cursor-pointer"
-                      >
-                        {category.replace('tshirts', 't-shirts')}
-                      </label>
-                    </div>
-                  ))}
+        {/* Products Grid */}
+        {isLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div key={i} className="animate-pulse">
+                <div className="bg-white rounded-lg shadow-md p-4">
+                  <div className="bg-gray-200 h-48 rounded mb-4"></div>
+                  <div className="h-6 bg-gray-200 rounded mb-2"></div>
+                  <div className="h-4 bg-gray-200 rounded mb-4"></div>
+                  <div className="h-10 bg-gray-200 rounded"></div>
                 </div>
               </div>
-
-              {/* Brands */}
-              <div className="mb-6">
-                <h4 className="font-medium mb-3">Brands</h4>
-                <div className="space-y-2">
-                  {brands.map(brand => (
-                    <div key={brand} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={brand}
-                        checked={selectedBrands.includes(brand)}
-                        onCheckedChange={() => handleBrandChange(brand)}
-                      />
-                      <label htmlFor={brand} className="text-sm cursor-pointer">
-                        {brand}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Price Range */}
-              <div>
-                <h4 className="font-medium mb-3">Price Range</h4>
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <Input
-                      type="number"
-                      placeholder="Min"
-                      value={priceRange[0]}
-                      onChange={(e) => setPriceRange([Number(e.target.value), priceRange[1]])}
-                      className="w-20"
-                    />
-                    <span>-</span>
-                    <Input
-                      type="number"
-                      placeholder="Max"
-                      value={priceRange[1]}
-                      onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
-                      className="w-20"
-                    />
-                  </div>
-                </div>
-              </div>
-            </Card>
+            ))}
           </div>
+        ) : (
+          <>
+            <div className={viewMode === 'grid' 
+              ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+              : "space-y-4"
+            }>
+              {products.map((product) => (
+                <Card key={product._id} className="group cursor-pointer border-0 shadow-md hover:shadow-lg transition-all duration-300 bg-white">
+                  {viewMode === 'grid' ? (
+                    <>
+                      <div className="relative overflow-hidden rounded-t-lg">
+                        <Link to={`/products/${product._id}`}>
+                          <img
+                            src={product.images[0] || '/placeholder.svg'}
+                            alt={product.name}
+                            className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
+                          />
+                        </Link>
+                        {product.badge && (
+                          <Badge className="absolute top-2 left-2 bg-aln-orange text-white">
+                            {product.badge}
+                          </Badge>
+                        )}
+                      </div>
+                      <CardContent className="p-4">
+                        <div className="space-y-2">
+                          <Link to={`/products/${product._id}`}>
+                            <h3 className="font-semibold text-gray-900 group-hover:text-aln-orange transition-colors duration-300">
+                              {product.name}
+                            </h3>
+                          </Link>
+                          
+                          <div className="flex items-center space-x-1">
+                            {renderStars(product.rating)}
+                            <span className="text-sm text-gray-600">
+                              ({product.numReviews})
+                            </span>
+                          </div>
 
-          {/* Products Grid */}
-          <div className="flex-1">
-            {filteredProducts.length === 0 ? (
-              <div className="text-center py-16">
-                <p className="text-lg text-gray-600 mb-4">No products found</p>
-                <Button onClick={() => {
-                  setSelectedCategories([]);
-                  setSelectedBrands([]);
-                  setPriceRange([0, 200]);
-                }}>
-                  Clear Filters
+                          <div className="flex items-center space-x-2">
+                            <span className="text-lg font-bold text-aln-orange">
+                              ${product.price.toFixed(2)}
+                            </span>
+                            {product.originalPrice && (
+                              <span className="text-sm text-gray-500 line-through">
+                                ${product.originalPrice.toFixed(2)}
+                              </span>
+                            )}
+                          </div>
+
+                          <Button
+                            onClick={() => handleAddToCart(product)}
+                            className="w-full bg-aln-orange hover:bg-aln-orange-dark text-white"
+                          >
+                            <ShoppingCart className="h-4 w-4 mr-2" />
+                            Add to Cart
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </>
+                  ) : (
+                    <div className="flex p-4 space-x-4">
+                      <Link to={`/products/${product._id}`} className="flex-shrink-0">
+                        <img
+                          src={product.images[0] || '/placeholder.svg'}
+                          alt={product.name}
+                          className="w-24 h-24 object-cover rounded"
+                        />
+                      </Link>
+                      <div className="flex-1 space-y-2">
+                        <Link to={`/products/${product._id}`}>
+                          <h3 className="font-semibold text-gray-900 hover:text-aln-orange transition-colors duration-300">
+                            {product.name}
+                          </h3>
+                        </Link>
+                        <div className="flex items-center space-x-1">
+                          {renderStars(product.rating)}
+                          <span className="text-sm text-gray-600">
+                            ({product.numReviews} reviews)
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <span className="text-lg font-bold text-aln-orange">
+                              ${product.price.toFixed(2)}
+                            </span>
+                            {product.originalPrice && (
+                              <span className="text-sm text-gray-500 line-through">
+                                ${product.originalPrice.toFixed(2)}
+                              </span>
+                            )}
+                          </div>
+                          <Button
+                            onClick={() => handleAddToCart(product)}
+                            className="bg-aln-orange hover:bg-aln-orange-dark text-white"
+                          >
+                            <ShoppingCart className="h-4 w-4 mr-2" />
+                            Add to Cart
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </Card>
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center space-x-2 mt-8">
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+                <span className="px-4 py-2 text-sm text-gray-600">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
                 </Button>
               </div>
-            ) : (
-              <div className={`grid gap-6 ${
-                viewMode === 'grid' 
-                  ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' 
-                  : 'grid-cols-1'
-              }`}>
-                {filteredProducts.map(product => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
-              </div>
             )}
-          </div>
-        </div>
+          </>
+        )}
       </div>
     </div>
   );
