@@ -38,22 +38,26 @@ const categories = [
   {
     name: 'Hats',
     description: 'Stylish hats for all occasions',
-    image: 'https://images.unsplash.com/photo-1521369909029-2afed882baee?w=400'
+    image: 'https://images.unsplash.com/photo-1521369909029-2afed882baee?w=400',
+    slug:'hats'
   },
   {
     name: 'T-Shirts',
     description: 'Comfortable and trendy t-shirts',
-    image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400'
+    image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400',
+    slug:'t-shirts'
   },
   {
     name: 'Sunglasses',
     description: 'Premium sunglasses with UV protection',
-    image: 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=400'
+    image: 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=400',
+    slug:'sunglasses'
   },
   {
     name: 'Accessories',
     description: 'Fashion accessories and more',
-    image: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=400'
+    image: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=400',
+    slug:'accessories'
   }
 ];
 
@@ -61,23 +65,28 @@ const brands = [
   {
     name: 'ALN Brand',
     description: 'Premium quality fashion accessories',
-    logo: '/lovable-uploads/4f81c6e4-fd99-4c90-a884-1971609e7f62.png'
+    logo: '/lovable-uploads/4f81c6e4-fd99-4c90-a884-1971609e7f62.png',
+    slug:'alnbrand',
   },
   {
     name: 'Style Co',
-    description: 'Modern style for everyone'
+    description: 'Modern style for everyone',
+    slug:'styleco',
   },
   {
     name: 'Comfort Wear',
-    description: 'Comfortable clothing for daily wear'
+    description: 'Comfortable clothing for daily wear',
+    slug:'comfortwear'
   },
   {
     name: 'Classic Vision',
-    description: 'Classic eyewear collection'
+    description: 'Classic eyewear collection',
+    slug:'classicvision'
   },
   {
     name: 'Urban Style',
-    description: 'Urban fashion trends'
+    description: 'Urban fashion trends',
+    slug:'urban-style'
   }
 ];
 
@@ -115,6 +124,7 @@ const importData = async () => {
         originalPrice: 39.99,
         category: createdCategories[0]._id, // Hats
         brand: createdBrands[0]._id, // ALN Brand
+        slug:'classic-black-hat',
         images: [
           'https://images.unsplash.com/photo-1521369909029-2afed882baee?w=600',
           'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=600'
@@ -137,6 +147,7 @@ const importData = async () => {
         price: 49.99,
         category: createdCategories[2]._id, // Sunglasses
         brand: createdBrands[1]._id, // Style Co
+        slug:'vintage-sun-glasses',
         images: [
           'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=600'
         ],
@@ -153,6 +164,7 @@ const importData = async () => {
       },
       {
         name: 'Premium Cotton T-Shirt',
+        slug:'premium-cotton-t-shirt',
         description: '100% organic cotton t-shirt available in various colors and sizes.',
         price: 24.99,
         category: createdCategories[1]._id, // T-Shirts
@@ -174,6 +186,7 @@ const importData = async () => {
         isFeatured: true
       },
       {
+        slug:'deisgner-baseball-cup',
         name: 'Designer Baseball Cap',
         description: 'Stylish baseball cap with embroidered logo and adjustable strap.',
         price: 34.99,
@@ -195,6 +208,7 @@ const importData = async () => {
         isFeatured: false
       },
       {
+        slug:'aviator-sun-glasses',
         name: 'Aviator Sunglasses',
         description: 'Classic aviator style sunglasses with polarized lenses.',
         price: 59.99,
@@ -214,6 +228,7 @@ const importData = async () => {
         isFeatured: true
       },
       {
+        slug:'graphic-print-tee',
         name: 'Graphic Print Tee',
         description: 'Trendy graphic t-shirt with unique artistic designs.',
         price: 27.99,
