@@ -4,69 +4,67 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Edit, Trash2, Eye } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Eye, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 
-interface Product {
+interface Brand {
   _id: string;
   name: string;
-  price: number;
-  stock: number;
+  slug: string;
+  description?: string;
+  logo?: string;
+  website?: string;
   isActive: boolean;
-  category: {
-    name: string;
-    slug: string;
-  };
-  images: string[];
+  createdAt: string;
 }
 
-const AdminProducts = () => {
+const AdminBrands = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [products, setProducts] = useState<Product[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetchProducts();
+    fetchBrands();
   }, []);
 
-  const fetchProducts = async () => {
+  const fetchBrands = async () => {
     try {
-      const response = await fetch('/api/products');
+      const response = await fetch('/api/brands');
       if (response.ok) {
         const data = await response.json();
-        setProducts(data.products || []);
+        setBrands(data);
       } else {
-        toast.error('Failed to fetch products');
+        toast.error('Failed to fetch brands');
       }
     } catch (error) {
-      toast.error('Error fetching products');
+      toast.error('Error fetching brands');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredBrands = brands.filter(brand =>
+    brand.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
     <div className="p-8">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Products Management</h1>
+        <h1 className="text-3xl font-bold">Brands Management</h1>
         <Button className="bg-aln-orange hover:bg-aln-orange-dark">
           <Plus className="h-4 w-4 mr-2" />
-          Add New Product
+          Add New Brand
         </Button>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>All Products</CardTitle>
+          <CardTitle>All Brands</CardTitle>
           <div className="flex items-center space-x-4">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
-                placeholder="Search products..."
+                placeholder="Search brands..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -84,34 +82,59 @@ const AdminProducts = () => {
               <table className="w-full table-auto">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-3 px-4">Product</th>
-                    <th className="text-left py-3 px-4">Category</th>
-                    <th className="text-left py-3 px-4">Price</th>
-                    <th className="text-left py-3 px-4">Stock</th>
+                    <th className="text-left py-3 px-4">Brand</th>
+                    <th className="text-left py-3 px-4">Slug</th>
+                    <th className="text-left py-3 px-4">Website</th>
                     <th className="text-left py-3 px-4">Status</th>
+                    <th className="text-left py-3 px-4">Created</th>
                     <th className="text-left py-3 px-4">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredProducts.map((product) => (
-                    <tr key={product._id} className="border-b hover:bg-gray-50">
+                  {filteredBrands.map((brand) => (
+                    <tr key={brand._id} className="border-b hover:bg-gray-50">
                       <td className="py-3 px-4">
                         <div className="flex items-center space-x-3">
-                          <img
-                            src={product.images[0] || '/placeholder.svg'}
-                            alt={product.name}
-                            className="w-12 h-12 object-cover rounded"
-                          />
-                          <span className="font-medium">{product.name}</span>
+                          {brand.logo && (
+                            <img
+                              src={brand.logo}
+                              alt={brand.name}
+                              className="w-10 h-10 object-cover rounded"
+                            />
+                          )}
+                          <div>
+                            <span className="font-medium">{brand.name}</span>
+                            {brand.description && (
+                              <p className="text-sm text-gray-600 max-w-xs truncate">
+                                {brand.description}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                      </td>  
-                      <td className="py-3 px-4 capitalize">{product.category?.name || 'Uncategorized'}</td>
-                      <td className="py-3 px-4">${product.price.toFixed(2)}</td>
-                      <td className="py-3 px-4">{product.stock}</td>
+                      </td>
+                      <td className="py-3 px-4 text-gray-600">{brand.slug}</td>
                       <td className="py-3 px-4">
-                        <Badge className={product.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
-                          {product.isActive ? 'Active' : 'Inactive'}
+                        {brand.website ? (
+                          <a 
+                            href={brand.website}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-aln-orange hover:underline flex items-center space-x-1"
+                          >
+                            <span>Visit</span>
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
+                        ) : (
+                          <span className="text-gray-400">No website</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4">
+                        <Badge className={brand.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                          {brand.isActive ? 'Active' : 'Inactive'}
                         </Badge>
+                      </td>
+                      <td className="py-3 px-4 text-gray-600">
+                        {new Date(brand.createdAt).toLocaleDateString()}
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex space-x-2">
@@ -138,4 +161,4 @@ const AdminProducts = () => {
   );
 };
 
-export default AdminProducts;
+export default AdminBrands;

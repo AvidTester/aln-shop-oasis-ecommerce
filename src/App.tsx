@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -22,6 +21,12 @@ import AdminProducts from "./pages/admin/AdminProducts";
 import AdminOrders from "./pages/admin/AdminOrders";
 import AdminUsers from "./pages/admin/AdminUsers";
 import NotFound from "./pages/NotFound";
+import AdminLayout from "./components/admin/AdminLayout";
+import AdminLogin from "./pages/admin/AdminLogin";
+import AdminCategories from "./pages/admin/AdminCategories";
+import AdminBrands from "./pages/admin/AdminBrands";
+import AdminShipping from "./pages/admin/AdminShipping";
+import AdminSettings from "./pages/admin/AdminSettings";
 
 const queryClient = new QueryClient();
 
@@ -34,26 +39,35 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <div className="min-h-screen flex flex-col">
-              <Navbar />
-              <main className="flex-1">
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/products" element={<Products />} />
-                  <Route path="/products/:id" element={<ProductDetail />} />
-                  <Route path="/cart" element={<Cart />} />
-                  <Route path="/checkout" element={<Checkout />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/register" element={<Register />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/orders" element={<Orders />} />
-                  <Route path="/admin" element={<AdminDashboard />} />
-                  <Route path="/admin/products" element={<AdminProducts />} />
-                  <Route path="/admin/orders" element={<AdminOrders />} />
-                  <Route path="/admin/users" element={<AdminUsers />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </main>
-              <Footer />
+              <Routes>
+                {/* Public routes */}
+                <Route path="/" element={<><Navbar /><Index /><Footer /></>} />
+                <Route path="/products" element={<><Navbar /><Products /><Footer /></>} />
+                <Route path="/products/:id" element={<><Navbar /><ProductDetail /><Footer /></>} />
+                <Route path="/cart" element={<><Navbar /><Cart /><Footer /></>} />
+                <Route path="/checkout" element={<><Navbar /><Checkout /><Footer /></>} />
+                <Route path="/login" element={<><Navbar /><Login /><Footer /></>} />
+                <Route path="/register" element={<><Navbar /><Register /><Footer /></>} />
+                <Route path="/profile" element={<><Navbar /><Profile /><Footer /></>} />
+                <Route path="/orders" element={<><Navbar /><Orders /><Footer /></>} />
+                
+                {/* Admin login route */}
+                <Route path="/admin/login" element={<AdminLogin />} />
+                
+                {/* Admin routes with layout */}
+                <Route path="/admin" element={<AdminLayout />}>
+                  <Route index element={<AdminDashboard />} />
+                  <Route path="products" element={<AdminProducts />} />
+                  <Route path="categories" element={<AdminCategories />} />
+                  <Route path="brands" element={<AdminBrands />} />
+                  <Route path="orders" element={<AdminOrders />} />
+                  <Route path="users" element={<AdminUsers />} />
+                  <Route path="shipping" element={<AdminShipping />} />
+                  <Route path="settings" element={<AdminSettings />} />
+                </Route>
+                
+                <Route path="*" element={<><Navbar /><NotFound /><Footer /></>} />
+              </Routes>
             </div>
           </BrowserRouter>
         </CartProvider>

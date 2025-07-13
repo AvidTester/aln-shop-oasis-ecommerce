@@ -1,224 +1,283 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Star, ShoppingCart, Heart, Share, Truck, Shield, ArrowLeft } from 'lucide-react';
+import { 
+  ShoppingCart, 
+  Star, 
+  Heart, 
+  Share2, 
+  Minus, 
+  Plus,
+  ArrowLeft,
+  Truck,
+  Shield,
+  RefreshCw
+} from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { toast } from 'sonner';
 
+interface Product {
+  _id: string;
+  name: string;
+  description: string;
+  price: number;
+  originalPrice?: number;
+  images: string[];
+  sizes?: string[];
+  colors?: { name: string; value: string }[];
+  features?: string[];
+  stock: number;
+  rating: number;
+  numReviews: number;
+  badge?: string;
+  category: {
+    name: string;
+    slug: string;
+  };
+  brand: {
+    name: string;
+    slug: string;
+  };
+}
+
 const ProductDetail = () => {
-  const { id } = useParams<{ id: string }>();
-  const { addToCart } = useCart();
+  const { id } = useParams();
+  const [product, setProduct] = useState<Product | null>(null);
+  const [selectedImage, setSelectedImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
   const [quantity, setQuantity] = useState(1);
-  const [selectedImage, setSelectedImage] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isFavorite, setIsFavorite] = useState(false);
+  
+  const { addToCart } = useCart();
 
-  // Mock product data - replace with API call
-  const product = {
-    id: id || '1',
-    name: 'Classic Black Hat',
-    price: 29.99,
-    originalPrice: 39.99,
-    images: [
-      'https://images.unsplash.com/photo-1521369909029-2afed882baee?w=600',
-      'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=600',
-      'https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=600',
-    ],
-    category: 'hats',
-    brand: 'ALN Brand',
-    rating: 4.8,
-    reviews: 124,
-    badge: 'Sale',
-    description: 'Premium quality cotton hat perfect for any occasion. Made with sustainable materials and designed for comfort and style.',
-    features: [
-      '100% organic cotton',
-      'Adjustable strap',
-      'One size fits most',
-      'Machine washable',
-      'UV protection',
-    ],
-    sizes: ['S', 'M', 'L', 'XL'],
-    colors: [
-      { name: 'Black', value: '#000000' },
-      { name: 'Navy', value: '#001f3f' },
-      { name: 'Brown', value: '#8b4513' },
-      { name: 'Gray', value: '#666666' },
-    ],
-    inStock: true,
-    stockCount: 15,
+  useEffect(() => {
+    if (id) {
+      fetchProduct();
+    }
+  }, [id]);
+
+  const fetchProduct = async () => {
+    try {
+      const response = await fetch(`/api/products/${id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setProduct(data);
+      } else {
+        toast.error('Product not found');
+      }
+    } catch (error) {
+      toast.error('Error fetching product');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const relatedProducts = [
-    {
-      id: '2',
-      name: 'Designer Baseball Cap',
-      price: 34.99,
-      image: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=200',
-      rating: 4.6,
-    },
-    {
-      id: '3',
-      name: 'Vintage Fedora',
-      price: 45.99,
-      image: 'https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=200',
-      rating: 4.7,
-    },
-    {
-      id: '4',
-      name: 'Sports Cap',
-      price: 28.99,
-      image: 'https://images.unsplash.com/photo-1575428652377-a2d80d2794c4?w=200',
-      rating: 4.5,
-    },
-  ];
-
   const handleAddToCart = () => {
-    if (product.sizes.length > 0 && !selectedSize) {
-      toast.error('Please select a size');
-      return;
-    }
-    if (product.colors.length > 0 && !selectedColor) {
-      toast.error('Please select a color');
-      return;
-    }
-
+    if (!product) return;
+    
     addToCart({
-      id: `${product.id}-${selectedSize}-${selectedColor}`,
+      id: product._id,
       name: product.name,
       price: product.price,
       image: product.images[0],
-      size: selectedSize,
-      color: selectedColor,
+      quantity,
     });
-
-    toast.success('Added to cart!');
+    toast.success(`${product.name} added to cart!`);
   };
 
-  return (
-    <div className="min-h-screen bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Breadcrumb */}
-        <div className="flex items-center space-x-2 mb-8 text-sm">
-          <Link to="/" className="text-gray-500 hover:text-aln-orange">Home</Link>
-          <span className="text-gray-400">/</span>
-          <Link to="/products" className="text-gray-500 hover:text-aln-orange">Products</Link>
-          <span className="text-gray-400">/</span>
-          <span className="text-gray-900 capitalize">{product.category}</span>
-          <span className="text-gray-400">/</span>
-          <span className="text-gray-600">{product.name}</span>
+  const renderStars = (rating: number) => {
+    return Array.from({ length: 5 }, (_, i) => (
+      <Star
+        key={i}
+        className={`h-4 w-4 ${
+          i < Math.floor(rating) ? 'text-yellow-400 fill-current' : 'text-gray-300'
+        }`}
+      />
+    ));
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="animate-pulse">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+              <div className="space-y-4">
+                <div className="bg-gray-200 h-96 rounded-lg"></div>
+                <div className="flex space-x-2">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="bg-gray-200 h-20 w-20 rounded"></div>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-6">
+                <div className="h-8 bg-gray-200 rounded"></div>
+                <div className="h-6 bg-gray-200 rounded w-3/4"></div>
+                <div className="h-12 bg-gray-200 rounded"></div>
+                <div className="h-32 bg-gray-200 rounded"></div>
+              </div>
+            </div>
+          </div>
         </div>
+      </div>
+    );
+  }
 
-        {/* Back Button */}
-        <Link to="/products">
-          <Button variant="ghost" className="mb-6">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Products
-          </Button>
-        </Link>
+  if (!product) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Product not found</h1>
+          <Link to="/products">
+            <Button className="bg-aln-orange hover:bg-aln-orange-dark">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Products
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+  return (
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Breadcrumb */}
+        <nav className="flex items-center space-x-2 text-sm text-gray-600 mb-8">
+          <Link to="/" className="hover:text-aln-orange">Home</Link>
+          <span>/</span>
+          <Link to="/products" className="hover:text-aln-orange">Products</Link>
+          <span>/</span>
+          <Link to={`/products?category=${product.category.slug}`} className="hover:text-aln-orange">
+            {product.category.name}
+          </Link>
+          <span>/</span>
+          <span className="text-gray-900">{product.name}</span>
+        </nav>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Product Images */}
           <div className="space-y-4">
-            <div className="aspect-square overflow-hidden rounded-lg bg-gray-100">
+            <div className="relative overflow-hidden rounded-lg bg-white">
               <img
-                src={product.images[selectedImage]}
+                src={product.images[selectedImage] || '/placeholder.svg'}
                 alt={product.name}
-                className="w-full h-full object-cover"
+                className="w-full h-96 object-cover"
               />
+              {product.badge && (
+                <Badge className="absolute top-4 left-4 bg-aln-orange text-white">
+                  {product.badge}
+                </Badge>
+              )}
             </div>
-            <div className="grid grid-cols-3 gap-4">
-              {product.images.map((image, index) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedImage(index)}
-                  className={`aspect-square overflow-hidden rounded-lg border-2 ${
-                    selectedImage === index ? 'border-aln-orange' : 'border-gray-200'
-                  }`}
-                >
-                  <img
-                    src={image}
-                    alt={`${product.name} ${index + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                </button>
-              ))}
-            </div>
+            
+            {product.images.length > 1 && (
+              <div className="flex space-x-2 overflow-x-auto">
+                {product.images.map((image, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setSelectedImage(index)}
+                    className={`flex-shrink-0 w-20 h-20 rounded border-2 overflow-hidden ${
+                      selectedImage === index ? 'border-aln-orange' : 'border-gray-200'
+                    }`}
+                  >
+                    <img
+                      src={image}
+                      alt={`${product.name} ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Product Info */}
           <div className="space-y-6">
             <div>
-              <div className="flex items-center space-x-2 mb-2">
-                <Badge className="bg-aln-orange text-white">{product.badge}</Badge>
-                <span className="text-sm text-gray-600">{product.brand}</span>
+              <div className="flex items-center justify-between mb-2">
+                <Badge variant="outline" className="text-aln-orange border-aln-orange">
+                  {product.brand.name}
+                </Badge>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsFavorite(!isFavorite)}
+                    className={isFavorite ? 'text-red-500' : 'text-gray-400'}
+                  >
+                    <Heart className={`h-5 w-5 ${isFavorite ? 'fill-current' : ''}`} />
+                  </Button>
+                  <Button variant="ghost" size="sm" className="text-gray-400">
+                    <Share2 className="h-5 w-5" />
+                  </Button>
+                </div>
               </div>
-              <h1 className="text-3xl font-bold mb-4">{product.name}</h1>
               
-              {/* Rating */}
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="flex items-center">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`h-5 w-5 ${
-                        i < Math.floor(product.rating)
-                          ? 'text-yellow-400 fill-current'
-                          : 'text-gray-300'
-                      }`}
-                    />
-                  ))}
+              <h1 className="text-3xl font-bold text-gray-900 mb-4">{product.name}</h1>
+              
+              <div className="flex items-center space-x-4 mb-4">
+                <div className="flex items-center space-x-1">
+                  {renderStars(product.rating)}
+                  <span className="text-sm text-gray-600 ml-2">
+                    ({product.numReviews} reviews)
+                  </span>
                 </div>
                 <span className="text-sm text-gray-600">
-                  {product.rating} ({product.reviews} reviews)
+                  Stock: {product.stock} available
                 </span>
               </div>
 
-              {/* Price */}
               <div className="flex items-center space-x-4 mb-6">
-                <span className="text-3xl font-bold text-aln-orange">${product.price}</span>
+                <span className="text-3xl font-bold text-aln-orange">
+                  ${product.price.toFixed(2)}
+                </span>
                 {product.originalPrice && (
-                  <span className="text-xl text-gray-500 line-through">
-                    ${product.originalPrice}
-                  </span>
-                )}
-                {product.originalPrice && (
-                  <Badge variant="secondary" className="bg-green-100 text-green-800">
-                    Save ${(product.originalPrice - product.price).toFixed(2)}
-                  </Badge>
+                  <>
+                    <span className="text-xl text-gray-500 line-through">
+                      ${product.originalPrice.toFixed(2)}
+                    </span>
+                    <Badge className="bg-red-500 text-white">
+                      -{Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
+                    </Badge>
+                  </>
                 )}
               </div>
-
-              <p className="text-gray-600 mb-6">{product.description}</p>
             </div>
 
             {/* Size Selection */}
-            {product.sizes.length > 0 && (
+            {product.sizes && product.sizes.length > 0 && (
               <div>
-                <label className="block text-sm font-medium mb-2">Size</label>
-                <Select value={selectedSize} onValueChange={setSelectedSize}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select size" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {product.sizes.map((size) => (
-                      <SelectItem key={size} value={size}>
-                        {size}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <h3 className="text-sm font-medium text-gray-900 mb-3">Size</h3>
+                <div className="flex flex-wrap gap-2">
+                  {product.sizes.map((size) => (
+                    <button
+                      key={size}
+                      onClick={() => setSelectedSize(size)}
+                      className={`px-4 py-2 border rounded-md text-sm font-medium transition-colors ${
+                        selectedSize === size
+                          ? 'border-aln-orange bg-aln-orange text-white'
+                          : 'border-gray-300 text-gray-700 hover:border-aln-orange'
+                      }`}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 
             {/* Color Selection */}
-            {product.colors.length > 0 && (
+            {product.colors && product.colors.length > 0 && (
               <div>
-                <label className="block text-sm font-medium mb-2">Color</label>
-                <div className="flex space-x-2">
+                <h3 className="text-sm font-medium text-gray-900 mb-3">Color</h3>
+                <div className="flex flex-wrap gap-2">
                   {product.colors.map((color) => (
                     <button
                       key={color.name}
@@ -234,163 +293,101 @@ const ProductDetail = () => {
               </div>
             )}
 
-            {/* Quantity */}
-            <div>
-              <label className="block text-sm font-medium mb-2">Quantity</label>
-              <Select
-                value={quantity.toString()}
-                onValueChange={(value) => setQuantity(parseInt(value))}
-              >
-                <SelectTrigger className="w-20">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {[...Array(Math.min(10, product.stockCount))].map((_, i) => (
-                    <SelectItem key={i + 1} value={(i + 1).toString()}>
-                      {i + 1}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-sm text-gray-600 mt-1">
-                {product.stockCount} items in stock
-              </p>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="space-y-4">
+            {/* Quantity and Add to Cart */}
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center border rounded-md">
+                <button
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  className="p-2 hover:bg-gray-100"
+                >
+                  <Minus className="h-4 w-4" />
+                </button>
+                <span className="px-4 py-2 font-medium">{quantity}</span>
+                <button
+                  onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
+                  className="p-2 hover:bg-gray-100"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              </div>
+              
               <Button
                 onClick={handleAddToCart}
-                disabled={!product.inStock}
-                className="w-full bg-aln-orange hover:bg-aln-orange-dark text-white py-3 text-lg"
+                disabled={product.stock === 0}
+                className="flex-1 bg-aln-orange hover:bg-aln-orange-dark text-white py-3"
               >
-                <ShoppingCart className="h-5 w-5 mr-2" />
-                {product.inStock ? 'Add to Cart' : 'Out of Stock'}
+                <ShoppingCart className="h-4 w-4 mr-2" />
+                {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
               </Button>
-              
-              <div className="flex space-x-4">
-                <Button variant="outline" className="flex-1">
-                  <Heart className="h-4 w-4 mr-2" />
-                  Add to Wishlist
-                </Button>
-                <Button variant="outline" className="flex-1">
-                  <Share className="h-4 w-4 mr-2" />
-                  Share
-                </Button>
-              </div>
             </div>
 
             {/* Features */}
-            <div className="border-t pt-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center space-x-2">
-                  <Truck className="h-5 w-5 text-aln-orange" />
-                  <span className="text-sm">Free shipping over $50</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Shield className="h-5 w-5 text-aln-orange" />
-                  <span className="text-sm">30-day return policy</span>
-                </div>
+            <div className="grid grid-cols-3 gap-4 py-6 border-t border-b">
+              <div className="text-center">
+                <Truck className="h-6 w-6 text-aln-orange mx-auto mb-2" />
+                <div className="text-sm font-medium">Free Shipping</div>
+                <div className="text-xs text-gray-600">On orders over $50</div>
+              </div>
+              <div className="text-center">
+                <Shield className="h-6 w-6 text-aln-orange mx-auto mb-2" />
+                <div className="text-sm font-medium">Secure Payment</div>
+                <div className="text-xs text-gray-600">100% secure</div>
+              </div>
+              <div className="text-center">
+                <RefreshCw className="h-6 w-6 text-aln-orange mx-auto mb-2" />
+                <div className="text-sm font-medium">Easy Returns</div>
+                <div className="text-xs text-gray-600">30-day policy</div>
               </div>
             </div>
           </div>
         </div>
 
         {/* Product Details Tabs */}
-        <Tabs defaultValue="details" className="mb-12">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="details">Details</TabsTrigger>
-            <TabsTrigger value="reviews">Reviews ({product.reviews})</TabsTrigger>
-            <TabsTrigger value="shipping">Shipping</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="details" className="mt-6">
-            <div className="prose max-w-none">
-              <h3 className="text-lg font-semibold mb-4">Product Features</h3>
-              <ul className="list-disc list-inside space-y-2">
-                {product.features.map((feature, index) => (
-                  <li key={index} className="text-gray-600">{feature}</li>
-                ))}
-              </ul>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="reviews" className="mt-6">
-            <div className="space-y-6">
-              <div className="flex items-center space-x-4">
-                <div className="text-4xl font-bold">{product.rating}</div>
-                <div>
-                  <div className="flex items-center mb-1">
-                    {[...Array(5)].map((_, i) => (
-                      <Star
-                        key={i}
-                        className={`h-4 w-4 ${
-                          i < Math.floor(product.rating)
-                            ? 'text-yellow-400 fill-current'
-                            : 'text-gray-300'
-                        }`}
-                      />
-                    ))}
+        <div className="mt-16">
+          <Tabs defaultValue="description" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="description">Description</TabsTrigger>
+              <TabsTrigger value="features">Features</TabsTrigger>
+              <TabsTrigger value="reviews">Reviews</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="description" className="mt-6">
+              <Card>
+                <CardContent className="p-6">
+                  <p className="text-gray-700 leading-relaxed">{product.description}</p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="features" className="mt-6">
+              <Card>
+                <CardContent className="p-6">
+                  {product.features && product.features.length > 0 ? (
+                    <ul className="space-y-2">
+                      {product.features.map((feature, index) => (
+                        <li key={index} className="flex items-center space-x-2">
+                          <div className="w-2 h-2 bg-aln-orange rounded-full"></div>
+                          <span className="text-gray-700">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-gray-600">No features listed for this product.</p>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="reviews" className="mt-6">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="text-center py-8">
+                    <p className="text-gray-600">Reviews feature coming soon...</p>
                   </div>
-                  <p className="text-sm text-gray-600">Based on {product.reviews} reviews</p>
-                </div>
-              </div>
-              
-              <div className="text-gray-600">
-                <p>Customer reviews will be displayed here once you connect to Supabase.</p>
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="shipping" className="mt-6">
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-semibold mb-2">Shipping Information</h4>
-                <ul className="space-y-2 text-gray-600">
-                  <li>• Free standard shipping on orders over $50</li>
-                  <li>• Express shipping available for $9.99</li>
-                  <li>• Standard delivery: 3-5 business days</li>
-                  <li>• Express delivery: 1-2 business days</li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="font-semibold mb-2">Return Policy</h4>
-                <p className="text-gray-600">
-                  30-day return policy. Items must be in original condition with tags attached.
-                </p>
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
-
-        {/* Related Products */}
-        <div>
-          <h2 className="text-2xl font-bold mb-6">You May Also Like</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {relatedProducts.map((product) => (
-              <Link key={product.id} to={`/products/${product.id}`}>
-                <div className="group cursor-pointer">
-                  <div className="aspect-square overflow-hidden rounded-lg bg-gray-100 mb-4">
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <h3 className="font-semibold mb-2 group-hover:text-aln-orange transition-colors">
-                    {product.name}
-                  </h3>
-                  <div className="flex items-center justify-between">
-                    <span className="text-lg font-bold text-aln-orange">${product.price}</span>
-                    <div className="flex items-center">
-                      <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                      <span className="text-sm text-gray-600 ml-1">{product.rating}</span>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </div>
