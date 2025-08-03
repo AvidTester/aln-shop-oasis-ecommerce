@@ -28,16 +28,10 @@ const AdminLogin = () => {
     setIsLoading(true);
     try {
       await login(email, password);
-      // Check if user is admin
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      if (user.role === 'admin') {
-        toast.success('Admin login successful!');
-        navigate('/admin');
-      } else {
-        toast.error('Access denied. Admin privileges required.');
-      }
-    } catch (error) {
-      toast.error('Invalid credentials');
+      toast.success('Admin login successful!');
+      navigate('/admin');
+    } catch (error: any) {
+      toast.error(error.message || 'Invalid credentials');
     } finally {
       setIsLoading(false);
     }
@@ -124,7 +118,7 @@ const AdminLogin = () => {
             <div className="mt-4 p-4 bg-blue-50 rounded-lg">
               <p className="text-sm font-medium text-blue-900 mb-2">Demo Admin:</p>
               <div className="text-xs text-blue-700">
-                <p>Email: admin@alnshop.com</p>
+                <p>Email: admin@demo.com</p>
                 <p>Password: admin123</p>
               </div>
             </div>
