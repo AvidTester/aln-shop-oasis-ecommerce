@@ -1,8 +1,9 @@
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { authService } from '@/services/authService';
 
 interface User {
-  id: string;
+  _id: string;
   name: string;
   email: string;
   role: 'user' | 'admin';
@@ -25,50 +26,77 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [state, setState] = useState<AuthState>({
     user: null,
     isAuthenticated: false,
-    isLoading: false,
+    isLoading: true,
   });
+
+  // Check for existing token on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          const response = await authService.getProfile();
+          setState({
+            user: response.user,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+        } catch (error) {
+          localStorage.removeItem('token');
+          setState({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+          });
+        }
+      } else {
+        setState({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false,
+        });
+      }
+    };
+
+    checkAuth();
+  }, []);
 
   const login = async (email: string, password: string) => {
     setState(prev => ({ ...prev, isLoading: true }));
     
-    // Mock authentication - replace with Supabase integration
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const mockUser: User = {
-      id: '1',
-      name: 'John Doe',
-      email,
-      role: email.includes('admin') ? 'admin' : 'user',
-    };
-
-    setState({
-      user: mockUser,
-      isAuthenticated: true,
-      isLoading: false,
-    });
+    try {
+      const response = await authService.login({ email, password });
+      localStorage.setItem('token', response.token);
+      setState({
+        user: response.user,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+    } catch (error) {
+      setState(prev => ({ ...prev, isLoading: false }));
+      throw error;
+    }
   };
 
   const register = async (name: string, email: string, password: string) => {
     setState(prev => ({ ...prev, isLoading: true }));
     
-    // Mock registration - replace with Supabase integration
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const mockUser: User = {
-      id: Date.now().toString(),
-      name,
-      email,
-      role: 'user',
-    };
-
-    setState({
-      user: mockUser,
-      isAuthenticated: true,
-      isLoading: false,
-    });
+    try {
+      const response = await authService.register({ name, email, password });
+      localStorage.setItem('token', response.token);
+      setState({
+        user: response.user,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+    } catch (error) {
+      setState(prev => ({ ...prev, isLoading: false }));
+      throw error;
+    }
   };
 
   const logout = () => {
+    localStorage.removeItem('token');
     setState({
       user: null,
       isAuthenticated: false,

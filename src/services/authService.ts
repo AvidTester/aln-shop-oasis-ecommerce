@@ -36,18 +36,11 @@ export const authService = {
     });
   },
 
-  // Admin login
-  adminLogin: async (loginData: LoginData) => {
-    return apiRequest('/auth/admin/login', {
-      method: 'POST',
-      body: JSON.stringify(loginData),
-    });
-  },
-
   // Get current user profile
   getProfile: async () => {
     const token = localStorage.getItem('token');
     return apiRequest('/auth/profile', {
+      method: 'GET',
       headers: {
         Authorization: `Bearer ${token}`,
       },

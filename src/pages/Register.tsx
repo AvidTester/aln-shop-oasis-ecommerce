@@ -50,8 +50,8 @@ const Register = () => {
       await register(name, email, password);
       toast.success('Account created successfully!');
       navigate('/');
-    } catch (error) {
-      toast.error('Registration failed. Please try again.');
+    } catch (error: any) {
+      toast.error(error.message || 'Registration failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
