@@ -135,7 +135,7 @@ const Products = () => {
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Categories</SelectItem>
+                  <SelectItem value="all">All Categories</SelectItem>
                   {categories.map((category) => (
                     <SelectItem key={category._id} value={category.slug}>
                       {category.name}
@@ -152,7 +152,7 @@ const Products = () => {
                   <SelectValue placeholder="Brand" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Brands</SelectItem>
+                  <SelectItem value="all">All Brands</SelectItem>
                   {brands.map((brand) => (
                     <SelectItem key={brand._id} value={brand.slug}>
                       {brand.name}
@@ -171,7 +171,7 @@ const Products = () => {
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Default</SelectItem>
+                  <SelectItem value="newest">Default</SelectItem>
                   <SelectItem value="price-low">Price: Low to High</SelectItem>
                   <SelectItem value="price-high">Price: High to Low</SelectItem>
                   <SelectItem value="rating">Highest Rated</SelectItem>
