@@ -32,16 +32,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Check for existing token on mount
   useEffect(() => {
     const checkAuth = async () => {
+      console.log('AuthContext: Checking authentication...');
       const token = localStorage.getItem('token');
+      console.log('AuthContext: Token found:', !!token);
+      
       if (token) {
         try {
+          console.log('AuthContext: Verifying token with backend...');
           const response = await authService.getProfile();
+          console.log('AuthContext: Profile response:', response);
           setState({
             user: response.user,
             isAuthenticated: true,
             isLoading: false,
           });
         } catch (error) {
+          console.error('AuthContext: Token verification failed:', error);
           localStorage.removeItem('token');
           setState({
             user: null,
@@ -50,6 +56,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           });
         }
       } else {
+        console.log('AuthContext: No token found');
         setState({
           user: null,
           isAuthenticated: false,
@@ -62,17 +69,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = async (email: string, password: string) => {
+    console.log('AuthContext: Login attempt for:', email);
     setState(prev => ({ ...prev, isLoading: true }));
     
     try {
+      console.log('AuthContext: Calling backend login API...');
       const response = await authService.login({ email, password });
+      console.log('AuthContext: Login response:', response);
+      
       localStorage.setItem('token', response.token);
       setState({
         user: response.user,
         isAuthenticated: true,
         isLoading: false,
       });
+      console.log('AuthContext: Login successful, user:', response.user);
     } catch (error) {
+      console.error('AuthContext: Login failed:', error);
       setState(prev => ({ ...prev, isLoading: false }));
       throw error;
     }
