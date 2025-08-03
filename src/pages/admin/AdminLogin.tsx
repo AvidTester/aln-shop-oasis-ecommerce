@@ -27,10 +27,13 @@ const AdminLogin = () => {
 
     setIsLoading(true);
     try {
+      console.log('AdminLogin: Attempting login for:', email);
       await login(email, password);
+      console.log('AdminLogin: Login successful, navigating to /admin');
       toast.success('Admin login successful!');
       navigate('/admin');
     } catch (error: any) {
+      console.error('AdminLogin: Login failed:', error);
       toast.error(error.message || 'Invalid credentials');
     } finally {
       setIsLoading(false);

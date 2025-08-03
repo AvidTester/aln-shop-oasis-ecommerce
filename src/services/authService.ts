@@ -20,30 +20,99 @@ export interface RegisterData {
 }
 
 export const authService = {
-  // User login
+  // User login - Mock implementation until backend is available
   login: async (loginData: LoginData) => {
-    return apiRequest('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(loginData),
-    });
+    console.log('AuthService: Mock login for:', loginData.email);
+    
+    // Mock delay to simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Check demo credentials
+    if (loginData.email === 'admin@demo.com' && loginData.password === 'admin123') {
+      const mockResponse = {
+        user: {
+          _id: 'admin_1',
+          name: 'Admin User',
+          email: loginData.email,
+          role: 'admin' as const
+        },
+        token: 'mock_admin_token_' + Date.now()
+      };
+      console.log('AuthService: Mock admin login successful:', mockResponse);
+      return mockResponse;
+    }
+    
+    if (loginData.email === 'user@demo.com' && loginData.password === 'password123') {
+      const mockResponse = {
+        user: {
+          _id: 'user_1',
+          name: 'Demo User',
+          email: loginData.email,
+          role: 'user' as const
+        },
+        token: 'mock_user_token_' + Date.now()
+      };
+      console.log('AuthService: Mock user login successful:', mockResponse);
+      return mockResponse;
+    }
+    
+    console.log('AuthService: Invalid credentials');
+    throw new Error('Invalid credentials');
   },
 
-  // User register
+  // User register - Mock implementation
   register: async (registerData: RegisterData) => {
-    return apiRequest('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify(registerData),
-    });
+    console.log('AuthService: Mock register for:', registerData.email);
+    
+    // Mock delay to simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const mockResponse = {
+      user: {
+        _id: 'user_' + Date.now(),
+        name: registerData.name,
+        email: registerData.email,
+        role: 'user' as const
+      },
+      token: 'mock_token_' + Date.now()
+    };
+    console.log('AuthService: Mock register successful:', mockResponse);
+    return mockResponse;
   },
 
-  // Get current user profile
+  // Get current user profile - Mock implementation
   getProfile: async () => {
+    console.log('AuthService: Mock getProfile');
     const token = localStorage.getItem('token');
-    return apiRequest('/auth/profile', {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    
+    if (!token || !token.startsWith('mock_')) {
+      console.log('AuthService: Invalid or missing token');
+      throw new Error('Invalid token');
+    }
+    
+    // Mock user data based on token
+    if (token.includes('admin')) {
+      const mockResponse = {
+        user: {
+          _id: 'admin_1',
+          name: 'Admin User',
+          email: 'admin@demo.com',
+          role: 'admin' as const
+        }
+      };
+      console.log('AuthService: Mock admin profile:', mockResponse);
+      return mockResponse;
+    } else {
+      const mockResponse = {
+        user: {
+          _id: 'user_1',
+          name: 'Demo User',
+          email: 'user@demo.com',
+          role: 'user' as const
+        }
+      };
+      console.log('AuthService: Mock user profile:', mockResponse);
+      return mockResponse;
+    }
   },
 };
