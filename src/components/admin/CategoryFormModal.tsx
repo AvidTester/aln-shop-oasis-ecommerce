@@ -8,7 +8,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { categoryService, Category } from '@/services/categoryService';
-import { removeBackground, loadImage } from '@/utils/backgroundRemoval';
 import { Upload, Wand2 } from 'lucide-react';
 
 interface CategoryFormModalProps {
@@ -30,7 +29,6 @@ const CategoryFormModal = ({ isOpen, onClose, onSuccess, category }: CategoryFor
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [isProcessingImage, setIsProcessingImage] = useState(false);
-  const [removeBackgroundEnabled, setRemoveBackgroundEnabled] = useState(false);
 
   useEffect(() => {
     if (category) {
@@ -61,51 +59,6 @@ const CategoryFormModal = ({ isOpen, onClose, onSuccess, category }: CategoryFor
     setImageFile(file);
     const objectUrl = URL.createObjectURL(file);
     setPreviewUrl(objectUrl);
-
-    if (removeBackgroundEnabled) {
-      await processImageWithBackgroundRemoval(file);
-    }
-  };
-
-  const processImageWithBackgroundRemoval = async (file: File) => {
-    setIsProcessingImage(true);
-    try {
-      const imageElement = await loadImage(file);
-      const processedBlob = await removeBackground(imageElement);
-      
-      const processedFile = new File([processedBlob], `processed_${file.name}`, {
-        type: 'image/png',
-      });
-      
-      setImageFile(processedFile);
-      const newObjectUrl = URL.createObjectURL(processedBlob);
-      setPreviewUrl(newObjectUrl);
-      
-      toast.success('Background removed successfully!');
-    } catch (error) {
-      console.error('Error removing background:', error);
-      toast.error('Failed to remove background. Using original image.');
-    } finally {
-      setIsProcessingImage(false);
-    }
-  };
-
-  const uploadImageToCloudinary = async (file: File): Promise<string> => {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', 'ml_default');
-
-    const response = await fetch('https://api.cloudinary.com/v1_1/dcbryptkx/image/upload', {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to upload image');
-    }
-
-    const data = await response.json();
-    return data.secure_url;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -114,12 +67,6 @@ const CategoryFormModal = ({ isOpen, onClose, onSuccess, category }: CategoryFor
 
     try {
       let finalFormData = { ...formData };
-
-      // If uploading from file, upload to Cloudinary first
-      if (uploadMethod === 'file' && imageFile) {
-        const uploadedImageUrl = await uploadImageToCloudinary(imageFile);
-        finalFormData.image = uploadedImageUrl;
-      }
 
       if (category) {
         await categoryService.updateCategory(category._id, finalFormData);
@@ -200,17 +147,6 @@ const CategoryFormModal = ({ isOpen, onClose, onSuccess, category }: CategoryFor
               />
             ) : (
               <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="removeBackground"
-                    checked={removeBackgroundEnabled}
-                    onCheckedChange={setRemoveBackgroundEnabled}
-                  />
-                  <Label htmlFor="removeBackground" className="flex items-center">
-                    <Wand2 className="w-4 h-4 mr-2" />
-                    Remove Background (AI)
-                  </Label>
-                </div>
                 <Input
                   type="file"
                   accept="image/*"

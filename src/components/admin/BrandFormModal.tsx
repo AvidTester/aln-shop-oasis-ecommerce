@@ -8,7 +8,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { brandService, Brand } from '@/services/brandService';
-import { removeBackground, loadImage } from '@/utils/backgroundRemoval';
 import { Upload, Wand2 } from 'lucide-react';
 
 interface BrandFormModalProps {
@@ -64,33 +63,6 @@ const BrandFormModal = ({ isOpen, onClose, onSuccess, brand }: BrandFormModalPro
     setLogoFile(file);
     const objectUrl = URL.createObjectURL(file);
     setPreviewUrl(objectUrl);
-
-    if (removeBackgroundEnabled) {
-      await processImageWithBackgroundRemoval(file);
-    }
-  };
-
-  const processImageWithBackgroundRemoval = async (file: File) => {
-    setIsProcessingImage(true);
-    try {
-      const imageElement = await loadImage(file);
-      const processedBlob = await removeBackground(imageElement);
-      
-      const processedFile = new File([processedBlob], `processed_${file.name}`, {
-        type: 'image/png',
-      });
-      
-      setLogoFile(processedFile);
-      const newObjectUrl = URL.createObjectURL(processedBlob);
-      setPreviewUrl(newObjectUrl);
-      
-      toast.success('Background removed successfully!');
-    } catch (error) {
-      console.error('Error removing background:', error);
-      toast.error('Failed to remove background. Using original image.');
-    } finally {
-      setIsProcessingImage(false);
-    }
   };
 
   const uploadImageToCloudinary = async (file: File): Promise<string> => {
@@ -117,12 +89,6 @@ const BrandFormModal = ({ isOpen, onClose, onSuccess, brand }: BrandFormModalPro
 
     try {
       let finalFormData = { ...formData };
-
-      // If uploading from file, upload to Cloudinary first
-      if (uploadMethod === 'file' && logoFile) {
-        const uploadedLogoUrl = await uploadImageToCloudinary(logoFile);
-        finalFormData.logo = uploadedLogoUrl;
-      }
 
       if (brand) {
         await brandService.updateBrand(brand._id, finalFormData);
@@ -203,17 +169,6 @@ const BrandFormModal = ({ isOpen, onClose, onSuccess, brand }: BrandFormModalPro
               />
             ) : (
               <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="removeBackground"
-                    checked={removeBackgroundEnabled}
-                    onCheckedChange={setRemoveBackgroundEnabled}
-                  />
-                  <Label htmlFor="removeBackground" className="flex items-center">
-                    <Wand2 className="w-4 h-4 mr-2" />
-                    Remove Background (AI)
-                  </Label>
-                </div>
                 <Input
                   type="file"
                   accept="image/*"

@@ -13,7 +13,7 @@ import { productService, Product, ProductFormData } from '@/services/productServ
 import { categoryService, Category } from '@/services/categoryService';
 import { brandService, Brand } from '@/services/brandService';
 import { X, Upload, Wand2 } from 'lucide-react';
-import { convertFileToBase64, loadImage, removeBackground } from '@/utils/backgroundRemoval';
+import { convertFileToBase64 } from '@/utils/backgroundRemoval';
 
 interface ProductFormModalProps {
   isOpen: boolean;
@@ -197,43 +197,6 @@ const ProductFormModal = ({ isOpen, onClose, onSuccess, product }: ProductFormMo
     }
   };
 
-  const handleRemoveBackground = async (index: number) => {
-    const imageUrl = formData.images[index];
-    if (!imageUrl) {
-      toast.error('Please upload an image first');
-      return;
-    }
-
-    try {
-      setIsProcessingImage(true);
-      toast.info('Removing background... This may take a moment');
-
-      // Load the image
-      let imageElement: HTMLImageElement;
-      if (imageUrl.startsWith('data:')) {
-        // Base64 image
-        imageElement = await loadImage(new Blob([atob(imageUrl.split(',')[1])], { type: 'image/png' }));
-      } else {
-        // URL image - convert to blob first
-        const response = await fetch(imageUrl);
-        const blob = await response.blob();
-        imageElement = await loadImage(blob);
-      }
-
-      // Remove background
-      const processedBlob = await removeBackground(imageElement);
-      const processedBase64 = await convertFileToBase64(new File([processedBlob], 'processed-image.png', { type: 'image/png' }));
-      
-      updateImage(index, processedBase64);
-      toast.success('Background removed successfully');
-    } catch (error) {
-      console.error('Background removal error:', error);
-      toast.error('Failed to remove background. Please try again.');
-    } finally {
-      setIsProcessingImage(false);
-    }
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
@@ -396,18 +359,6 @@ const ProductFormModal = ({ isOpen, onClose, onSuccess, product }: ProductFormMo
                       Upload File
                     </Button>
                   </div>
-                  {image && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleRemoveBackground(index)}
-                      disabled={isProcessingImage}
-                    >
-                      <Wand2 className="h-4 w-4 mr-2" />
-                      Remove BG
-                    </Button>
-                  )}
                 </div>
                 {image && (
                   <div className="w-32 h-32 border rounded overflow-hidden">
