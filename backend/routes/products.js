@@ -1,6 +1,8 @@
 
 const express = require('express');
 const Product = require('../models/Product');
+const Category = require('../models/Category');
+const Brand = require('../models/Brand');
 const router = express.Router();
 
 // @desc    Get all products
@@ -17,12 +19,18 @@ router.get('/', async (req, res) => {
     
     // Category filter
     if (req.query.category) {
-      query.category = req.query.category;
+      const categoryDoc = await Category.findOne({ slug: req.query.category });
+      if (categoryDoc) {
+        query.category = categoryDoc._id;
+      }
     }
     
     // Brand filter
     if (req.query.brand) {
-      query.brand = req.query.brand;
+      const brandDoc = await Brand.findOne({ slug: req.query.brand });
+      if (brandDoc) {
+        query.brand = brandDoc._id;
+      }
     }
     
     // Price range filter
@@ -59,6 +67,7 @@ router.get('/', async (req, res) => {
         sort = { isFeatured: -1, createdAt: -1 };
     }
 
+    console.log(query);
     const products = await Product.find(query)
       .populate('category', 'name slug')
       .populate('brand', 'name slug')
@@ -75,7 +84,7 @@ router.get('/', async (req, res) => {
       totalProducts: total
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
