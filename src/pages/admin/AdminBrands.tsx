@@ -6,23 +6,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Search, Edit, Trash2, Eye, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
-import { apiRequest } from '@/services/api';
-
-interface Brand {
-  _id: string;
-  name: string;
-  slug: string;
-  description?: string;
-  logo?: string;
-  website?: string;
-  isActive: boolean;
-  createdAt: string;
-}
+import { brandService, Brand } from '@/services/brandService';
+import BrandFormModal from '@/components/admin/BrandFormModal';
 
 const AdminBrands = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [brands, setBrands] = useState<Brand[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingBrand, setEditingBrand] = useState<Brand | null>(null);
 
   useEffect(() => {
     fetchBrands();
@@ -30,17 +22,35 @@ const AdminBrands = () => {
 
   const fetchBrands = async () => {
     try {
-      const response = await apiRequest('/brands');
-      if (response) {
-        setBrands(response);
-      } else {
-        toast.error('Failed to fetch brands');
-      }
+      const response = await brandService.getBrands();
+      setBrands(response);
     } catch (error) {
       toast.error('Error fetching brands');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleEdit = (brand: Brand) => {
+    setEditingBrand(brand);
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this brand?')) {
+      try {
+        await brandService.deleteBrand(id);
+        toast.success('Brand deleted successfully');
+        fetchBrands();
+      } catch (error) {
+        toast.error('Failed to delete brand');
+      }
+    }
+  };
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setEditingBrand(null);
   };
 
   const filteredBrands = brands.filter(brand =>
@@ -51,7 +61,10 @@ const AdminBrands = () => {
     <div className="p-8">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Brands Management</h1>
-        <Button className="bg-aln-orange hover:bg-aln-orange-dark">
+        <Button 
+          className="bg-aln-orange hover:bg-aln-orange-dark"
+          onClick={() => setIsModalOpen(true)}
+        >
           <Plus className="h-4 w-4 mr-2" />
           Add New Brand
         </Button>
@@ -141,10 +154,19 @@ const AdminBrands = () => {
                           <Button size="sm" variant="outline">
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button size="sm" variant="outline">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handleEdit(brand)}
+                          >
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="text-red-600 hover:text-red-700"
+                            onClick={() => handleDelete(brand._id)}
+                          >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -157,6 +179,13 @@ const AdminBrands = () => {
           )}
         </CardContent>
       </Card>
+
+      <BrandFormModal
+        isOpen={isModalOpen}
+        onClose={handleModalClose}
+        onSuccess={fetchBrands}
+        brand={editingBrand}
+      />
     </div>
   );
 };

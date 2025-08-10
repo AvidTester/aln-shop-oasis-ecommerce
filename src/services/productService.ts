@@ -1,5 +1,5 @@
 
-import { apiRequest } from './api';
+import { apiRequest, getAuthHeaders } from './api';
 
 export interface Product {
   _id: string;
@@ -16,13 +16,17 @@ export interface Product {
   numReviews: number;
   badge?: string;
   category: {
+    _id: string;
     name: string;
     slug: string;
   };
   brand: {
+    _id: string;
     name: string;
     slug: string;
   };
+  isFeatured: boolean;
+  isActive: boolean;
 }
 
 export const productService = {
@@ -57,6 +61,10 @@ export const productService = {
   createProduct: async (productData: Partial<Product>) => {
     return apiRequest('/products', {
       method: 'POST',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify(productData),
     });
   },
@@ -65,6 +73,10 @@ export const productService = {
   updateProduct: async (id: string, productData: Partial<Product>) => {
     return apiRequest(`/products/${id}`, {
       method: 'PUT',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify(productData),
     });
   },
@@ -73,6 +85,7 @@ export const productService = {
   deleteProduct: async (id: string) => {
     return apiRequest(`/products/${id}`, {
       method: 'DELETE',
+      headers: getAuthHeaders(),
     });
   },
 };

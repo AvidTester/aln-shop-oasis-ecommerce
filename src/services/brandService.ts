@@ -1,11 +1,15 @@
 
-import { apiRequest } from './api';
+import { apiRequest, getAuthHeaders } from './api';
 
 export interface Brand {
   _id: string;
   name: string;
   slug: string;
+  description?: string;
   logo?: string;
+  website?: string;
+  isActive: boolean;
+  createdAt: string;
 }
 
 export const brandService = {
@@ -23,6 +27,10 @@ export const brandService = {
   createBrand: async (brandData: Partial<Brand>) => {
     return apiRequest('/brands', {
       method: 'POST',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify(brandData),
     });
   },
@@ -31,6 +39,10 @@ export const brandService = {
   updateBrand: async (id: string, brandData: Partial<Brand>) => {
     return apiRequest(`/brands/${id}`, {
       method: 'PUT',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify(brandData),
     });
   },
@@ -39,6 +51,7 @@ export const brandService = {
   deleteBrand: async (id: string) => {
     return apiRequest(`/brands/${id}`, {
       method: 'DELETE',
+      headers: getAuthHeaders(),
     });
   },
 };

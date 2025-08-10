@@ -1,11 +1,14 @@
 
-import { apiRequest } from './api';
+import { apiRequest, getAuthHeaders } from './api';
 
 export interface Category {
   _id: string;
   name: string;
   slug: string;
+  description?: string;
   image?: string;
+  isActive: boolean;
+  createdAt: string;
 }
 
 export const categoryService = {
@@ -23,6 +26,10 @@ export const categoryService = {
   createCategory: async (categoryData: Partial<Category>) => {
     return apiRequest('/categories', {
       method: 'POST',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify(categoryData),
     });
   },
@@ -31,6 +38,10 @@ export const categoryService = {
   updateCategory: async (id: string, categoryData: Partial<Category>) => {
     return apiRequest(`/categories/${id}`, {
       method: 'PUT',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify(categoryData),
     });
   },
@@ -39,6 +50,7 @@ export const categoryService = {
   deleteCategory: async (id: string) => {
     return apiRequest(`/categories/${id}`, {
       method: 'DELETE',
+      headers: getAuthHeaders(),
     });
   },
 };

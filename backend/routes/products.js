@@ -3,6 +3,7 @@ const express = require('express');
 const Product = require('../models/Product');
 const Category = require('../models/Category');
 const Brand = require('../models/Brand');
+const { protect, admin } = require('../middleware/auth');
 const router = express.Router();
 
 // @desc    Get all products
@@ -67,7 +68,6 @@ router.get('/', async (req, res) => {
         sort = { isFeatured: -1, createdAt: -1 };
     }
 
-    console.log(query);
     const products = await Product.find(query)
       .populate('category', 'name slug')
       .populate('brand', 'name slug')
@@ -118,6 +118,77 @@ router.get('/featured/list', async (req, res) => {
       .limit(8);
 
     res.json(products);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @desc    Create product
+// @route   POST /api/products
+// @access  Private/Admin
+router.post('/', protect, admin, async (req, res) => {
+  try {
+    const product = new Product(req.body);
+    const createdProduct = await product.save();
+    
+    // Populate the response with category and brand details
+    const populatedProduct = await Product.findById(createdProduct._id)
+      .populate('category', 'name slug')
+      .populate('brand', 'name slug');
+    
+    res.status(201).json(populatedProduct);
+  } catch (error) {
+    if (error.code === 11000) {
+      res.status(400).json({ message: 'Product name already exists' });
+    } else {
+      res.status(500).json({ message: 'Server error', error: error.message });
+    }
+  }
+});
+
+// @desc    Update product
+// @route   PUT /api/products/:id
+// @access  Private/Admin
+router.put('/:id', protect, admin, async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    
+    if (product) {
+      Object.assign(product, req.body);
+      const updatedProduct = await product.save();
+      
+      // Populate the response with category and brand details
+      const populatedProduct = await Product.findById(updatedProduct._id)
+        .populate('category', 'name slug')
+        .populate('brand', 'name slug');
+      
+      res.json(populatedProduct);
+    } else {
+      res.status(404).json({ message: 'Product not found' });
+    }
+  } catch (error) {
+    if (error.code === 11000) {
+      res.status(400).json({ message: 'Product name already exists' });
+    } else {
+      res.status(500).json({ message: 'Server error', error: error.message });
+    }
+  }
+});
+
+// @desc    Delete product
+// @route   DELETE /api/products/:id
+// @access  Private/Admin
+router.delete('/:id', protect, admin, async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    
+    if (product) {
+      product.isActive = false;
+      await product.save();
+      res.json({ message: 'Product removed' });
+    } else {
+      res.status(404).json({ message: 'Product not found' });
+    }
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }

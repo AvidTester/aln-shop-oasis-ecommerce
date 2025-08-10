@@ -6,25 +6,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Search, Edit, Trash2, Eye } from 'lucide-react';
 import { toast } from 'sonner';
-import { apiRequest } from '@/services/api';
-
-interface Product {
-  _id: string;
-  name: string;
-  price: number;
-  stock: number;
-  isActive: boolean;
-  category: {
-    name: string;
-    slug: string;
-  };
-  images: string[];
-}
+import { productService, Product } from '@/services/productService';
+import ProductFormModal from '@/components/admin/ProductFormModal';
 
 const AdminProducts = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   useEffect(() => {
     fetchProducts();
@@ -32,19 +22,37 @@ const AdminProducts = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await apiRequest('/products');
-      console.log(response)
-      if (response) {
-        setProducts(response.products || []);
-      } else {
-        toast.error('Failed to fetch products');
+      const response = await productService.getProducts();
+      if (response && response.products) {
+        setProducts(response.products);
       }
     } catch (error) {
-      console.log(error)
       toast.error('Error fetching products');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleEdit = (product: Product) => {
+    setEditingProduct(product);
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this product?')) {
+      try {
+        await productService.deleteProduct(id);
+        toast.success('Product deleted successfully');
+        fetchProducts();
+      } catch (error) {
+        toast.error('Failed to delete product');
+      }
+    }
+  };
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setEditingProduct(null);
   };
 
   const filteredProducts = products.filter(product =>
@@ -55,7 +63,10 @@ const AdminProducts = () => {
     <div className="p-8">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Products Management</h1>
-        <Button className="bg-aln-orange hover:bg-aln-orange-dark">
+        <Button 
+          className="bg-aln-orange hover:bg-aln-orange-dark"
+          onClick={() => setIsModalOpen(true)}
+        >
           <Plus className="h-4 w-4 mr-2" />
           Add New Product
         </Button>
@@ -88,6 +99,7 @@ const AdminProducts = () => {
                   <tr className="border-b">
                     <th className="text-left py-3 px-4">Product</th>
                     <th className="text-left py-3 px-4">Category</th>
+                    <th className="text-left py-3 px-4">Brand</th>
                     <th className="text-left py-3 px-4">Price</th>
                     <th className="text-left py-3 px-4">Stock</th>
                     <th className="text-left py-3 px-4">Status</th>
@@ -104,10 +116,16 @@ const AdminProducts = () => {
                             alt={product.name}
                             className="w-12 h-12 object-cover rounded"
                           />
-                          <span className="font-medium">{product.name}</span>
+                          <div>
+                            <span className="font-medium">{product.name}</span>
+                            {product.badge && (
+                              <Badge className="ml-2 text-xs">{product.badge}</Badge>
+                            )}
+                          </div>
                         </div>
                       </td>  
                       <td className="py-3 px-4 capitalize">{product.category?.name || 'Uncategorized'}</td>
+                      <td className="py-3 px-4 capitalize">{product.brand?.name || 'No Brand'}</td>
                       <td className="py-3 px-4">${product.price.toFixed(2)}</td>
                       <td className="py-3 px-4">{product.stock}</td>
                       <td className="py-3 px-4">
@@ -120,10 +138,19 @@ const AdminProducts = () => {
                           <Button size="sm" variant="outline">
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button size="sm" variant="outline">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handleEdit(product)}
+                          >
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="text-red-600 hover:text-red-700"
+                            onClick={() => handleDelete(product._id)}
+                          >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -136,6 +163,13 @@ const AdminProducts = () => {
           )}
         </CardContent>
       </Card>
+
+      <ProductFormModal
+        isOpen={isModalOpen}
+        onClose={handleModalClose}
+        onSuccess={fetchProducts}
+        product={editingProduct}
+      />
     </div>
   );
 };

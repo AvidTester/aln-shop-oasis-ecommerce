@@ -6,22 +6,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Search, Edit, Trash2, Eye } from 'lucide-react';
 import { toast } from 'sonner';
-import { apiRequest } from '@/services/api';
-
-interface Category {
-  _id: string;
-  name: string;
-  slug: string;
-  description?: string;
-  image?: string;
-  isActive: boolean;
-  createdAt: string;
-}
+import { categoryService, Category } from '@/services/categoryService';
+import CategoryFormModal from '@/components/admin/CategoryFormModal';
 
 const AdminCategories = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
   useEffect(() => {
     fetchCategories();
@@ -29,17 +22,35 @@ const AdminCategories = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await apiRequest('/categories');
-      if (response) {
-        setCategories(response);
-      } else {
-        toast.error('Failed to fetch categories');
-      }
+      const response = await categoryService.getCategories();
+      setCategories(response);
     } catch (error) {
       toast.error('Error fetching categories');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleEdit = (category: Category) => {
+    setEditingCategory(category);
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this category?')) {
+      try {
+        await categoryService.deleteCategory(id);
+        toast.success('Category deleted successfully');
+        fetchCategories();
+      } catch (error) {
+        toast.error('Failed to delete category');
+      }
+    }
+  };
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setEditingCategory(null);
   };
 
   const filteredCategories = categories.filter(category =>
@@ -50,7 +61,10 @@ const AdminCategories = () => {
     <div className="p-8">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Categories Management</h1>
-        <Button className="bg-aln-orange hover:bg-aln-orange-dark">
+        <Button 
+          className="bg-aln-orange hover:bg-aln-orange-dark"
+          onClick={() => setIsModalOpen(true)}
+        >
           <Plus className="h-4 w-4 mr-2" />
           Add New Category
         </Button>
@@ -110,10 +124,19 @@ const AdminCategories = () => {
                           <Button size="sm" variant="outline">
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button size="sm" variant="outline">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handleEdit(category)}
+                          >
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="text-red-600 hover:text-red-700"
+                            onClick={() => handleDelete(category._id)}
+                          >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -126,6 +149,13 @@ const AdminCategories = () => {
           )}
         </CardContent>
       </Card>
+
+      <CategoryFormModal
+        isOpen={isModalOpen}
+        onClose={handleModalClose}
+        onSuccess={fetchCategories}
+        category={editingCategory}
+      />
     </div>
   );
 };
