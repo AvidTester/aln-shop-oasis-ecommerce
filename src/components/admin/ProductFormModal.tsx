@@ -344,7 +344,7 @@ const ProductFormModal = ({ isOpen, onClose, onSuccess, product }: ProductFormMo
                 <SelectValue placeholder="Select badge" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No Badge</SelectItem>
+                <SelectItem value="none">No Badge</SelectItem>
                 {badgeOptions.map((badge) => (
                   <SelectItem key={badge} value={badge}>
                     {badge}
