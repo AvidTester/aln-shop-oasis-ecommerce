@@ -12,7 +12,8 @@ import { toast } from 'sonner';
 import { productService, Product, ProductFormData } from '@/services/productService';
 import { categoryService, Category } from '@/services/categoryService';
 import { brandService, Brand } from '@/services/brandService';
-import { X } from 'lucide-react';
+import { X, Upload, Wand2 } from 'lucide-react';
+import { convertFileToBase64, loadImage, removeBackground } from '@/utils/backgroundRemoval';
 
 interface ProductFormModalProps {
   isOpen: boolean;
@@ -43,6 +44,7 @@ const ProductFormModal = ({ isOpen, onClose, onSuccess, product }: ProductFormMo
   const [isLoading, setIsLoading] = useState(false);
   const [newFeature, setNewFeature] = useState('');
   const [newColor, setNewColor] = useState({ name: '', value: '#000000' });
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
 
   const sizeOptions = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'One Size'];
   const badgeOptions = ['New', 'Sale', 'Best Seller', 'Limited', 'Featured'];
@@ -182,6 +184,56 @@ const ProductFormModal = ({ isOpen, onClose, onSuccess, product }: ProductFormMo
     setFormData({ ...formData, colors: newColors });
   };
 
+  const handleFileUpload = async (index: number, file: File) => {
+    try {
+      setIsProcessingImage(true);
+      const base64Image = await convertFileToBase64(file);
+      updateImage(index, base64Image);
+      toast.success('Image uploaded successfully');
+    } catch (error) {
+      toast.error('Failed to upload image');
+    } finally {
+      setIsProcessingImage(false);
+    }
+  };
+
+  const handleRemoveBackground = async (index: number) => {
+    const imageUrl = formData.images[index];
+    if (!imageUrl) {
+      toast.error('Please upload an image first');
+      return;
+    }
+
+    try {
+      setIsProcessingImage(true);
+      toast.info('Removing background... This may take a moment');
+
+      // Load the image
+      let imageElement: HTMLImageElement;
+      if (imageUrl.startsWith('data:')) {
+        // Base64 image
+        imageElement = await loadImage(new Blob([atob(imageUrl.split(',')[1])], { type: 'image/png' }));
+      } else {
+        // URL image - convert to blob first
+        const response = await fetch(imageUrl);
+        const blob = await response.blob();
+        imageElement = await loadImage(blob);
+      }
+
+      // Remove background
+      const processedBlob = await removeBackground(imageElement);
+      const processedBase64 = await convertFileToBase64(new File([processedBlob], 'processed-image.png', { type: 'image/png' }));
+      
+      updateImage(index, processedBase64);
+      toast.success('Background removed successfully');
+    } catch (error) {
+      console.error('Background removal error:', error);
+      toast.error('Failed to remove background. Please try again.');
+    } finally {
+      setIsProcessingImage(false);
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
@@ -305,23 +357,78 @@ const ProductFormModal = ({ isOpen, onClose, onSuccess, product }: ProductFormMo
           <div className="space-y-2">
             <Label>Images</Label>
             {formData.images.map((image, index) => (
-              <div key={index} className="flex gap-2">
-                <Input
-                  type="url"
-                  value={image}
-                  onChange={(e) => updateImage(index, e.target.value)}
-                  placeholder="Image URL"
-                />
-                {formData.images.length > 1 && (
-                  <Button type="button" variant="outline" size="sm" onClick={() => removeImage(index)}>
-                    <X className="h-4 w-4" />
-                  </Button>
+              <div key={index} className="space-y-2">
+                <div className="flex gap-2">
+                  <Input
+                    type="url"
+                    value={image}
+                    onChange={(e) => updateImage(index, e.target.value)}
+                    placeholder="Image URL"
+                    className="flex-1"
+                  />
+                  {formData.images.length > 1 && (
+                    <Button type="button" variant="outline" size="sm" onClick={() => removeImage(index)}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleFileUpload(index, file);
+                      }}
+                      className="hidden"
+                      id={`file-upload-${index}`}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => document.getElementById(`file-upload-${index}`)?.click()}
+                      disabled={isProcessingImage}
+                      className="w-full"
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload File
+                    </Button>
+                  </div>
+                  {image && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleRemoveBackground(index)}
+                      disabled={isProcessingImage}
+                    >
+                      <Wand2 className="h-4 w-4 mr-2" />
+                      Remove BG
+                    </Button>
+                  )}
+                </div>
+                {image && (
+                  <div className="w-32 h-32 border rounded overflow-hidden">
+                    <img
+                      src={image}
+                      alt="Product preview"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  </div>
                 )}
               </div>
             ))}
-            <Button type="button" variant="outline" onClick={addImage}>
+            <Button type="button" variant="outline" onClick={addImage} disabled={isProcessingImage}>
               Add Image
             </Button>
+            {isProcessingImage && (
+              <p className="text-sm text-muted-foreground">Processing image...</p>
+            )}
           </div>
 
           <div className="space-y-2">
