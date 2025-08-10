@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Search, Edit, Trash2, Eye, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
+import { apiRequest } from '@/services/api';
 
 interface Brand {
   _id: string;
@@ -29,10 +30,9 @@ const AdminBrands = () => {
 
   const fetchBrands = async () => {
     try {
-      const response = await fetch('/api/brands');
-      if (response.ok) {
-        const data = await response.json();
-        setBrands(data);
+      const response = await apiRequest('/brands');
+      if (response) {
+        setBrands(response);
       } else {
         toast.error('Failed to fetch brands');
       }

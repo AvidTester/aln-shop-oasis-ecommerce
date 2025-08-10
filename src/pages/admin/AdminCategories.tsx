@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Search, Edit, Trash2, Eye } from 'lucide-react';
 import { toast } from 'sonner';
+import { apiRequest } from '@/services/api';
 
 interface Category {
   _id: string;
@@ -28,10 +29,9 @@ const AdminCategories = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch('/api/categories');
-      if (response.ok) {
-        const data = await response.json();
-        setCategories(data);
+      const response = await apiRequest('/categories');
+      if (response) {
+        setCategories(response);
       } else {
         toast.error('Failed to fetch categories');
       }

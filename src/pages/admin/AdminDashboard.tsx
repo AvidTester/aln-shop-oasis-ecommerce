@@ -15,6 +15,7 @@ import {
   Settings
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { adminService } from '@/services/adminService';
 
 interface DashboardStats {
   totalRevenue: number;
@@ -44,18 +45,16 @@ const AdminDashboard = () => {
   const fetchDashboardData = async () => {
     try {
       const [statsResponse, ordersResponse] = await Promise.all([
-        fetch('/api/admin/stats'),
-        fetch('/api/admin/orders?limit=4')
+          adminService.getDashboardStats(),
+          adminService.getOrders()
       ]);
 
-      if (statsResponse.ok) {
-        const statsData = await statsResponse.json();
-        setStats(statsData);
+      if (statsResponse) {
+        setStats(statsResponse);
       }
 
-      if (ordersResponse.ok) {
-        const ordersData = await ordersResponse.json();
-        setRecentOrders(ordersData.slice(0, 4));
+      if (ordersResponse) {
+        setRecentOrders(ordersResponse.slice(0, 4));
       }
     } catch (error) {
       toast.error('Failed to load dashboard data');

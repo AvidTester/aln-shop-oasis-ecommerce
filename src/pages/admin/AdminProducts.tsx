@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Search, Edit, Trash2, Eye } from 'lucide-react';
 import { toast } from 'sonner';
+import { apiRequest } from '@/services/api';
 
 interface Product {
   _id: string;
@@ -31,14 +32,15 @@ const AdminProducts = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await fetch('/api/products');
-      if (response.ok) {
-        const data = await response.json();
-        setProducts(data.products || []);
+      const response = await apiRequest('/products');
+      console.log(response)
+      if (response) {
+        setProducts(response.products || []);
       } else {
         toast.error('Failed to fetch products');
       }
     } catch (error) {
+      console.log(error)
       toast.error('Error fetching products');
     } finally {
       setIsLoading(false);
