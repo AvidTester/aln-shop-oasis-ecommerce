@@ -29,6 +29,23 @@ export interface Product {
   isActive: boolean;
 }
 
+export interface ProductFormData {
+  name: string;
+  description: string;
+  price: number;
+  originalPrice?: number;
+  images: string[];
+  sizes?: string[];
+  colors?: { name: string; value: string }[];
+  features?: string[];
+  stock: number;
+  badge?: string;
+  category: string;
+  brand: string;
+  isFeatured: boolean;
+  isActive: boolean;
+}
+
 export const productService = {
   // Get all products with filters
   getProducts: async (params: {
@@ -58,7 +75,7 @@ export const productService = {
   },
 
   // Admin: Create product
-  createProduct: async (productData: Partial<Product>) => {
+  createProduct: async (productData: ProductFormData) => {
     return apiRequest('/products', {
       method: 'POST',
       headers: {
@@ -70,7 +87,7 @@ export const productService = {
   },
 
   // Admin: Update product
-  updateProduct: async (id: string, productData: Partial<Product>) => {
+  updateProduct: async (id: string, productData: ProductFormData) => {
     return apiRequest(`/products/${id}`, {
       method: 'PUT',
       headers: {

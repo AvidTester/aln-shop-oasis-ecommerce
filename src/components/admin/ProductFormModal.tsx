@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { productService, Product } from '@/services/productService';
+import { productService, Product, ProductFormData } from '@/services/productService';
 import { categoryService, Category } from '@/services/categoryService';
 import { brandService, Brand } from '@/services/brandService';
 import { X } from 'lucide-react';
